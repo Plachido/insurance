@@ -3,16 +3,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-
 df = pd.read_csv('insurance.csv')
 print(df.shape)
 print(df.dtypes)
 
-
-
 # PRE-PROCESSING
-
 df = df.rename(columns={"Gender": "Male"})
 cleanup_nums = {"Vehicle_Age": {"< 1 Year": -1, "1-2 Year": 0, "> 2 Years": 1},
                 "Vehicle_Damage": {"Yes": 1, "No": 0},
@@ -117,8 +112,5 @@ def confusionMatrix (Prediction, Ground_Truth):
 #confusionMatrix(y_pred, y_test)
 
 #VERIFICA DI OVERFIT
-y_pred = decision_tree.predict(X_train_num)
-confusionMatrix(y_pred, y_test)
 y_pred = decision_tree.predict(X_test_num)
-print("---ORA CON QUELLI TESTING")
 confusionMatrix(y_pred, y_test)
