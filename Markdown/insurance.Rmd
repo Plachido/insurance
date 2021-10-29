@@ -21,13 +21,106 @@ Per poter essere utilizzate efficientemente, alcune colonne hanno bisogno di ess
 insurance[which(insurance$Gender == "Male"),]$Gender = 1
 insurance[which(insurance$Gender == "Female"),]$Gender = 1
 colnames(insurance)[2] = "Male"
+insurance$Male <- as.factor(insurance$Male)
+
 ```
 * La colonna `Vehicle_Age` viene convertita da categorica ordinata a numerica. I valori utilizzati sono:
-  + -1 per le auto immatricolate da meno di un anno.
-  + 0 per le auto immatricolate tra gli 1 e i 2 anni precedenti.
-  + 1 per le auto immatricolate da più di 2 anni.
+  + -1 per le auto immatricolate da meno di un anno
+  + 0 per le auto immatricolate tra gli 1 e i 2 anni precedenti
+  + 1 per le auto immatricolate da più di 2 anni
 ```{r Vehicle_Age categorical->numeric, indent = "  "}
 insurance[which(insurance$Vehicle_Age == "< 1 Year"),]$Vehicle_Age <- -1
 insurance[which(insurance$Vehicle_Age == "1-2 Year"),]$Vehicle_Age <- 0
 insurance[which(insurance$Vehicle_Age == "> 2 Years"),]$Vehicle_Age <- 1
+insurance$Vehicle_Age <- as.numeric(insurance$Vehicle_Age)
+```
+
+* La colonna `Vehicle_Damage` viene convertita da categorica nominale a factor. I valori utilizzati sono:
+  + 0 per le auto che non sono mai state coinvolte in incidenti
+  + 1 per le auto che sono state coinvolte in incidenti
+```{r Vehicle_Damage categorical->factor}
+insurance[which(insurance$Vehicle_Damage == "Yes"),]$Vehicle_Damage <- 1
+insurance[which(insurance$Vehicle_Damage == "No"),]$Vehicle_Damage <- 0
+insurance$Vehicle_Damage <- as.factor(insurance$Vehicle_Damage)
+```
+
+Le colonne categoriche e binarie restanti vengono convertite in factor
+```{r Colonne numeriche viste come factor}
+insurance$Driving_License <- as.factor(insurance$Driving_License)
+insurance$Region_Code <- as.factor(insurance$Region_Code)
+insurance$Previously_Insured <- as.factor(insurance$Previously_Insured)
+insurance$Policy_Sales_Channel <- as.factor(insurance$Policy_Sales_Channel)
+insurance$Response <- as.factor(insurance$Response)
+```
+
+Attraverso la funzione ggplot si generano i grafici che mostrano la distribuzione di frequenza delle variabili numeriche `Age`, `Vintage`, `Annual_Premium`
+
+```{r Distribuzione frequenze, warning = FALSE, message = FALSE}
+library(ggplot2)
+
+age_plot <- ggplot(insurance, 
+               aes(x=Age, fill=Response))+
+    geom_histogram(alpha=0.4,position="identity")+
+    xlab("Età")+
+    scale_y_continuous("Numero di osservazioni") + guides(fill=guide_legend(title=NULL)) + 
+  scale_fill_discrete(labels=c("Negativi","Positivi")) +
+  theme(legend.position = c(1,1),legend.justification=c(1,1))
+
+#Frequenze Vintage
+vintage_plot <- ggplot(insurance, 
+             aes( x=Vintage, fill=Response))+
+  geom_histogram(alpha=0.4,position="identity")+
+  xlab("Vintage")+
+  scale_y_continuous("Numero di osservazioni")
+
+#Frequenze annual_premium
+premium_plot <- ggplot( insurance, 
+             aes( x=Annual_Premium, fill=Response))+
+  geom_histogram(alpha=0.4,position="identity")+
+  xlab("Premio Annuale")+
+  scale_y_continuous("Numero di osservazioni") +
+  scale_x_continuous(limits = c(0, 110000))
+
+library(ggpubr)
+ggarrange(age_plot, ggarrange(vintage_plot, premium_plot, ncol = 2, legend = "none"),
+          nrow = 2, common.legend = T, legend = "bottom")
+
+```
+
+Nonostante il numero non elevato di features presenti nel dataset possiamo cercare la correlazione presente tra esse. Dalla correlation matrix si può notare che le
+features `Vehicle_Age` e `Age` sono piuttosto correlate tra loro. Nonostante questo
+ho deciso di mantenerle entrambe poichè il vantaggio dal punto di vista computazionale 
+è minimo, evitando cosi perdita di informazioni
+```{r CorrelationMatrix, warning = FALSE, message = FALSE}
+library(corrplot)
+correlationMatrix <- stats::cor(insurance[c(3, 7, 9, 11)])
+corrplot(correlationMatrix, method="circle", type="lower", tl.col="black")
+```
+
+
+Uno degli aspetti più critici del dataset in analisi è lo sbilanciamento tra le classi,
+come si evince dal seguente piechart. Infatti le percentuali evidenziano uno sbilanciamento di 88% a favore della classe dei negativi contro il 12% della classe dei positivi 
+```{r Dimostrazione sbilanciamento}
+
+freq <- as.data.frame(table(insurance$Response))
+colnames(freq)[1] = "Response"
+freq$perc <- prop.table(freq$Freq)
+print(freq)
+ggplot(freq, aes(x = "", y = perc, fill = Response)) +
+  geom_col(color = "black") +
+  coord_polar(theta = "y") +
+  xlab("") + 
+  ylab("") +
+  ggtitle("Frequenza delle classi") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+
+
+
+
+
+```{r}
 ```

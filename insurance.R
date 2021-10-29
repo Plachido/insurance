@@ -13,27 +13,26 @@ library(mlbench) #per plot
 library(ggplot2)
 library(ggpubr)
 library(RColorBrewer)
-insurance <- read.csv("C:/Users/placi/Documents/Lumsa/Progetto Frank/insurance.csv")
-
+insurance <- read.csv("D:/LUMSA/Artificial intelligence/PROGETTO/insurance.csv")
+#D:/LUMSA/Artificial intelligence/PROGETTO/insurance.csv
 ##############Manipolazione dei dati
 #Operazioni sui dati
 insurance[which(insurance$Gender == "Male"),]$Gender = 1
 insurance[which(insurance$Gender == "Female"),]$Gender = 1
 colnames(insurance)[2] = "Male"
+insurance$Male <- as.factor(insurance$Male)
 insurance[which(insurance$Vehicle_Age == "< 1 Year"),]$Vehicle_Age <- -1
 insurance[which(insurance$Vehicle_Age == "1-2 Year"),]$Vehicle_Age <- 0
 insurance[which(insurance$Vehicle_Age == "> 2 Years"),]$Vehicle_Age <- 1
 insurance$Vehicle_Age <- as.numeric(insurance$Vehicle_Age)
 insurance[which(insurance$Vehicle_Damage == "Yes"),]$Vehicle_Damage <- 1
 insurance[which(insurance$Vehicle_Damage == "No"),]$Vehicle_Damage <- 0
-insurance$Response <- as.factor(insurance$Response)
-insurance$Male <- as.factor(insurance$Male)
+insurance$Vehicle_Damage <- as.factor(insurance$Vehicle_Damage)
 insurance$Driving_License <- as.factor(insurance$Driving_License)
 insurance$Region_Code <- as.factor(insurance$Region_Code)
-insurance$Vehicle_Damage <- as.factor(insurance$Vehicle_Damage)
 insurance$Previously_Insured <- as.factor(insurance$Previously_Insured)
 insurance$Policy_Sales_Channel <- as.factor(insurance$Policy_Sales_Channel)
-
+insurance$Response <- as.factor(insurance$Response)
 
 #Distribuzioni delle frequenze
 #Frequenze Age
