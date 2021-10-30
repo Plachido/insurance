@@ -5,6 +5,9 @@ author: "Francesco Gozzoli"
 date: "29/10/2021"
 output: pdf_document
 ---
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
 
 ## INTRODUZIONE
 Il dataset contiene informazioni sull’interesse di clienti di una compagnia di
@@ -14,6 +17,19 @@ Inizialmente le colonne che compongono il dataset si trovano nella situazione mo
 insurance <- read.csv("../insurance.csv")
 summary(insurance)
 ```
+```{r library, echo = FALSE}
+library(rattle)#per plot di alberi
+library(parallel) #per parallelizzare
+library(unbalanced) #per bilanciamento
+library(pROC) #per curva ROC
+library(e1071) #per bayes
+library(adabag) #per boosting
+library(gridExtra) #per layout
+library(mlbench) #per plot
+library(RColorBrewer)
+```
+
+## PRE-PROCESSING
 Per poter essere utilizzate efficientemente, alcune colonne hanno bisogno di essere manipolate. In particolare:
 
 * La colonna `Gender`, viene trasformata nella colonna `Male`, che ammette valori binari `0` e `1` dove `1` rappresenta il sesso maschile e `0` quello femminile.
@@ -53,9 +69,12 @@ insurance$Policy_Sales_Channel <- as.factor(insurance$Policy_Sales_Channel)
 insurance$Response <- as.factor(insurance$Response)
 ```
 
+
+## STATISTICHE DESCRITTIVE
+
 Attraverso la funzione ggplot si generano i grafici che mostrano la distribuzione di frequenza delle variabili numeriche `Age`, `Vintage`, `Annual_Premium`
 
-```{r Distribuzione frequenze, warning = FALSE, message = FALSE}
+```{r Distribuzione frequenze}
 library(ggplot2)
 
 age_plot <- ggplot(insurance, 
@@ -91,7 +110,7 @@ Nonostante il numero non elevato di features presenti nel dataset possiamo cerca
 features `Vehicle_Age` e `Age` sono piuttosto correlate tra loro. Nonostante questo
 ho deciso di mantenerle entrambe poichè il vantaggio dal punto di vista computazionale 
 è minimo, evitando cosi perdita di informazioni
-```{r CorrelationMatrix, warning = FALSE, message = FALSE}
+```{r CorrelationMatrix}
 library(corrplot)
 correlationMatrix <- stats::cor(insurance[c(3, 7, 9, 11)])
 corrplot(correlationMatrix, method="circle", type="lower", tl.col="black")
@@ -115,6 +134,77 @@ ggplot(freq, aes(x = "", y = perc, fill = Response)) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
+
+Per rappresentare graficamente la distribuzione dei valori delle 3 features numeriche 
+`Age`, `Annual_Premium`, `Vintage`e controllare la presenza di outliers si stampano i relativi boxplot
+```{r Boxplot}
+
+par(mfrow=c(1,3))
+boxplot(insurance$Age, main="Age")
+boxplot(insurance$Annual_Premium, main="Annual_Premium")
+boxplot(insurance$Vintage, main="Vintage")
+par(mfrow=c(1,1))
+```
+
+
+## SEPARAZIONE STRATIFICATA
+
+Per addestrare e validare i modelli che verranno realizzati si divide il dataset originale nei due dataset di training e testing nella classica proporzione percentuale di 70-30. Il criterio di separazione scelto è quello stratificato perchè consente di mantenere la proporzione tra le istanze della classe di maggioranza e quella di minoranza all'interno dei due dataset. E' stata fatta questa scelta perchè il dataset originale è molto sbilanciato, ed in questo modo evitiamo di creare dei dataset ancora più sbilanciati
+
+```{r Separazione dataset training e testing}
+library(splitstackshape) #per suddivisione test/train stratificata
+set.seed(1)
+train <- as.data.frame(stratified(insurance, c('Response'), 0.7))
+test <- insurance[which(!(insurance$id %in% train$id)),]
+insurance <- insurance[, -1]
+train <- train[, -1]
+test <- test[,-1]
+```
+
+
+Nonostante lo sbilanciamento si prova a generare un primo modello, in particolare viene generato un albero di decisione. Per fare ciò ci si può avvalere della funzione `rpart`, che genera un albero implementando l'algoritmo CART ed utilizzando quindi l'indice di Gini come criterio per lo splitting ^[https://cran.r-project.org/web/packages/rpart/vignettes/longintro.pdf]
+
+
+## ALBERO DI DECISIONE SU DATASET SBILANCIATO
+
+```{r Albero di decisione}
+library(rpart) #per alberi di decisione
+tree <- rpart(Response~., train, method = "class", control = rpart.control(cp = 0.00001))
+prediction <- predict(tree, test, type = "class")
+library(caret) #per confusionmatrix
+confusionMatrix(as.factor(prediction),as.factor(test$Response))
+auc = roc(test$Response, as.numeric(prediction))
+print(auc)
+plot(auc)
+```
+
+Come si può notare dalla curva ROC e dalla ConfusionMatrix la classificazione non è per niente soddisfacente poichè nonostante riesca a classificare le istanze della classe di maggioranza fatica a classificare correttamente le istanze della classe di minoranza
+Questo è un problema perchè oltre ad essere un punto debole del modello, l'obiettivo della classificazione è quello di massimizzare la corretta identificazione di potenziali clienti interessati piuttosto che di quelli non interessati. In generale quindi si preferisce avere un maggior tasso di falsi positivi piuttosto che di falsi negativi
+
+
+## RIBILANCIAMENTO
+
+Alla luce delle prestazioni mostrate da questo primo modello è bene procedere ad un ribilanciamento delle classi. Per fare ciò mi sono avvalso di due tecniche:
+* Tecnica di sottocampionamento casuale che consiste nel rimuovere casualmente istanze della classe di maggioranza fino ad avere un bilanciamento di circa 50-50 
+* Sovracampionamento effettuato attraverso SMOTE, che genera istanze sintetiche della classe di minoranza sfruttando un algoritmo di k-nearest neighbors (K = 5 nel mio caso)
+
+
+```{r}
+set.seed(1)
+rem <- ubUnder(train[,1:11], train$Response, perc=14, method = "percUnder")
+casual.balance.train <- data.frame(rem$X, rem$Y)
+casual.balance.train$rem.Y <- NULL
+names(casual.balance.train)[11] <- "Response"
+#casual.balance.test <- c(test, train[rem$id.rm,])
+rm(rem)
+table(casual.balance.train$Response)
+```
+
+
+## MODELLI DI CLASSIFICAZIONE
+
+
+### ALBERI DI DECISIONE
 
 
 

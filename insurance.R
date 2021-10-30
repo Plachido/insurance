@@ -119,6 +119,7 @@ names(casual.balance.train)[11] <- "Response"
 rm(rem)
 table(casual.balance.train$Response)
 
+
 ########SMOTE
 set.seed(1)
 SMOTE <- ubBalance(train[,-c(1,11)], train[,11],type="ubSMOTE", positive = 1, percOver = 100, percUnder = 280, verbose = T)
