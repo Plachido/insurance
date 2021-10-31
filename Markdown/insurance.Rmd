@@ -208,6 +208,7 @@ table(casual.balance.train$Response)
 ### ALBERI DI DECISIONE
 
 Per prima cosa si valutano le prestazioni dell'albero di decisione applicato ai dataset bilanciati, prima il dataset bilanciato con la tecnica di sottocampionamento e dopo il dataset bilanciato con lo SMOTE
+
 ```{r Albero di decisione Undersampling}
 tree <- rpart(Response~., casual.balance.train, method = "class", control = rpart.control(cp = 0.00001))
 plot(tree)
@@ -220,7 +221,7 @@ plot(auc)
 ```
 
 
-```{r}
+```{r Albero di decisione SMOTE}
 tree <- rpart(Response~., SMOTE_ds, method = "class", control = rpart.control(cp = 0.0001))
 plot(tree)
 fancyRpartPlot(tree)
@@ -230,8 +231,49 @@ auc = roc(test$Response, as.numeric(prediction))
 print(auc)
 plot(auc)
 ```
- Come si può notare i risultati sono migliorati molto rispetto al primo modello con dataset sbilanciato, in particolare si nota come la tecnica di undersampling fornisca prestazioni peggiori rispetto a SMOTE per quanto riguarda la sensitivity ma migliori per quanto riguarda la specificity, quest'ultima è preferibile in questo caso come già accennato prima
+Come si può notare i risultati sono migliorati molto rispetto al primo modello con dataset sbilanciato, in particolare si nota come la tecnica di undersampling fornisca prestazioni peggiori rispetto a SMOTE per quanto riguarda la sensitivity ma migliori per quanto riguarda la specificity, quest'ultima è preferibile in questo caso come già accennato prima
  
+
+### NAIVE BAYES
+
+Adesso si utilizza il metodo di classificazione Naive-Bayes, come per gli alberi di decisione si valuteranno le prestazioni prima sul dataset originale e poi per entrambi i dataset bilanciati, prima quello bilanciato con Undersampling e dopo quello bilanciato con SMOTE
+
+```{r Naive-Bayes Sbilanciato}
+#Naive-Bayes su dataset sbilanciato
+bayes_bil <- naiveBayes(Response ~ ., data = casual.balance.train)
+b_prediction <- predict(bayes_bil, newdata = test)
+confusionMatrix(as.factor(b_prediction),as.factor(test$Response))
+auc = roc(test$Response, as.numeric(b_prediction))
+print(auc)
+plot(auc)
+```
+
+```{r Naive-Bayes Undersampling}
+#Naive-Bayes su dataset bilanciato con Undersampling casuale
+bayes <- naiveBayes(Response ~ ., data = train)
+b_prediction <- predict(bayes, newdata = test)
+confusionMatrix(as.factor(b_prediction),as.factor(test$Response))
+auc = roc(test$Response, as.numeric(b_prediction))
+print(auc)
+plot(auc)
+```
+
+```{r Naive-Bayes SMOTE}
+#Naive-Bayes su dataset bilanciato con SMOTE
+bayes_bil <- naiveBayes(Response ~ ., data = SMOTE_ds)
+b_prediction <- predict(bayes_bil, newdata = test)
+confusionMatrix(as.factor(b_prediction),as.factor(test$Response))
+auc = roc(test$Response, as.numeric(b_prediction))
+print(auc)
+plot(auc)
+```
+
+
+
+
+
+
+
 
 
 
