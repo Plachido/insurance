@@ -18,7 +18,7 @@ insurance <- read.csv("D:/LUMSA/Artificial intelligence/PROGETTO/insurance.csv")
 ##############Manipolazione dei dati
 #Operazioni sui dati
 insurance[which(insurance$Gender == "Male"),]$Gender = 1
-insurance[which(insurance$Gender == "Female"),]$Gender = 1
+insurance[which(insurance$Gender == "Female"),]$Gender = 0
 colnames(insurance)[2] = "Male"
 insurance$Male <- as.factor(insurance$Male)
 insurance[which(insurance$Vehicle_Age == "< 1 Year"),]$Vehicle_Age <- -1
