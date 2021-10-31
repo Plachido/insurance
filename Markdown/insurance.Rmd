@@ -204,10 +204,34 @@ table(casual.balance.train$Response)
 ## MODELLI DI CLASSIFICAZIONE
 
 
+
 ### ALBERI DI DECISIONE
 
+Per prima cosa si valutano le prestazioni dell'albero di decisione applicato ai dataset bilanciati, prima il dataset bilanciato con la tecnica di sottocampionamento e dopo il dataset bilanciato con lo SMOTE
+```{r Albero di decisione Undersampling}
+tree <- rpart(Response~., casual.balance.train, method = "class", control = rpart.control(cp = 0.00001))
+plot(tree)
+fancyRpartPlot(tree)
+prediction <- predict(tree, test, type = "class")
+confusionMatrix(as.factor(prediction),as.factor(test$Response))
+auc = roc(test$Response, as.numeric(prediction))
+print(auc)
+plot(auc)
+```
 
 
+```{r}
+tree <- rpart(Response~., SMOTE_ds, method = "class", control = rpart.control(cp = 0.0001))
+plot(tree)
+fancyRpartPlot(tree)
+prediction <- predict(tree, test, type = "class")
+confusionMatrix(as.factor(prediction),as.factor(test$Response))
+auc = roc(test$Response, as.numeric(prediction))
+print(auc)
+plot(auc)
+```
+ Come si può notare i risultati sono migliorati molto rispetto al primo modello con dataset sbilanciato, in particolare si nota come la tecnica di undersampling fornisca prestazioni peggiori rispetto a SMOTE per quanto riguarda la sensitivity ma migliori per quanto riguarda la specificity, quest'ultima è preferibile in questo caso come già accennato prima
+ 
 
 
 
