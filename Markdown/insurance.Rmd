@@ -12,7 +12,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ## INTRODUZIONE
 Il dataset contiene informazioni sull’interesse di clienti di una compagnia di
 assicurazioni per l’acquisto di polizze auto.
-Inizialmente le colonne che compongono il dataset si trovano nella situazione mostrata dalla funzione`summary`.
+Inizialmente le colonne che compongono il dataset sono 12, di cui una, l'ultima è quella che identifica la classe di appartenenza delle istanze. Le features sono informazioni di base delle persone prese in esame, quali età, sesso, ecc, oltrechè informazioni sul veicolo e sulla situazione assicurativa. Le colonne inizialmente si trovano nella situazione mostrata dalla funzione`summary`.
 ```{r introduzione}
 insurance <- read.csv("../insurance.csv")
 summary(insurance)
@@ -189,7 +189,7 @@ Alla luce delle prestazioni mostrate da questo primo modello è bene procedere a
 * Sovracampionamento effettuato attraverso SMOTE, che genera istanze sintetiche della classe di minoranza sfruttando un algoritmo di k-nearest neighbors (K = 5 nel mio caso)
 
 
-```{r}
+```{r casual UnderSampling}
 set.seed(1)
 rem <- ubUnder(train[,1:11], train$Response, perc=14, method = "percUnder")
 casual.balance.train <- data.frame(rem$X, rem$Y)
@@ -200,6 +200,20 @@ rm(rem)
 table(casual.balance.train$Response)
 ```
 
+Per quanto riguarda l'applicazione della tecnica di ribilanciamento SMOTE (synthetic minority oversampling technique) si è scelto un approccio non esageratamente drastico cercando quindi di mantenere un leggero sbilanciamento. Per evitare di creare un dataset enorme effettuando quindi soltanto un oversampling della classe di minoranza, ho optato per una scelta ibrida abbinando all'oversampling una rimozione casuale (undersampling) delle istanze della classe di maggioranza, questo approccio ibrido è infatti consigliato dalla documentazione ufficiale di SMOTE ^[https://arxiv.org/pdf/1106.1813.pdf]. A questo scopo i parametri scelti  per l'esecuzione di `ubBalance` sono:
+* percOver = 100 questo significa che l'algoritmo crea istanze sintetiche della classe di minoranza in numero pari a _(percOver/100)*num.istanze classe minoranza_ delle istanze di quest'ultima 
+
+* percUnder = 280 questo significa che l'algoritmo effettua un undersampling della classe di maggioranza mantenendone un numero pari a _(280/100)*num.istanze sintetiche_
+
+```{r SMOTE}
+set.seed(1)
+SMOTE <- ubBalance(train[,-c(1,11)], train[,11],type="ubSMOTE", positive = 1, 
+                   percOver = 100, percUnder = 280, verbose = T)
+SMOTE_ds <- SMOTE$X
+SMOTE_ds$Response <- SMOTE$Y
+#smote.balance.test <- c(test, SMOTE$id.rm)
+table(SMOTE_ds$Response)
+```
 
 ## MODELLI DI CLASSIFICAZIONE
 
@@ -268,13 +282,66 @@ print(auc)
 plot(auc)
 ```
 
+A differenza degli alberi di decisione il classificatore Naive-Bayes ha le prestazioni abbastanza allineate per tutti e 3 i dataset utilizzati. In particolare il dataset sbilanciato ha prestazioni abbastanza simili per sensitivity e specificity, mentre i dataset bilanciati hanno una specificity più alta a discapito della sensitivity, il dataset bilanciato con SMOTE però restituisce delle prestazioni simili al dataset bilanciato con Undersampling casuale ma più basse in ogni circostanza. In definitiva se si vogliono prestazioni più allineate tra di loro è preferibile usare il dataset originale, mentre prediligendo come fatto fino ad ora la specificity il dataset bilanciato con undersampling casuale risulta il migliore
 
 
+### SVM 
+
+Una soluzione allo sbilanciamento alternativa alla alterazione del dataset è quella di applicare una funzione di peso che permette di dare più importanza alle istanze di una classe rispetto a quelle dell'altra
+In questo caso si applica la funzione di peso al metodo di classificazione SVM utilizzato perchè molto efficace nei problemi di classificazione binaria. Utilizzando kernel lineare la SVM separa tramite un iperpiano le istanze in classi.
+In particolare i pesi (parametro `weights`) utilizzati sono 1 per la classe di maggioranza e 6 per la classe di minoranza, per ottenere un peso simile tra le classi 
+
+```{r SVM}
+set.seed(1)
+weights <- c(1,6)
+names(weights) <- c(0, 1)
+support <- svm(formula = Response ~ ., data = train[, 1:11], kernel = "linear", class.weights = weights, scale = TRUE)
+print(support)
+plot(support, casual.balance.train)
+svm_prediction <- predict(support, newdata = test)
+confusionMatrix(as.factor(svm_prediction),as.factor(test$Response))
+auc = roc(test$Response, as.numeric(svm_prediction))
+print(auc)
+plot(auc)
+```
+
+Le prestazioni del classificatore sono buone in generale e soprattutto hanno ottima specificity, purtroppo però il metodo risulta molto costoso dal punto di vista del tempo, motivo per il quale mi sono limitato ad applicarlo ad uno solo dei dataset a disposizione
 
 
+### XGBOOST
 
+L'algoritmo XGBoost si basa sul metodo del gradient boosting che utilizza le derivate di secondo ordine, cioè il gradiente, per trovare il miglior modello ad albero grazie ad una esaustiva valutazione di tutte le possibili suddivisioni ad ogni passo dell'algoritmo. Viste le prestazioni del metodo SVM abbinata alla funzione dei pesi anche l'algoritmo XGBoost si applica allo stesso modo
 
+```{r XGBoost}
+library(xgboost)
+library(Matrix)
 
+xgb_preprocess <- function(df)
+{
+  df.xgb <- df[,c(1,2,3,5,6,7,8,10,11)]
+  df.xgb$Male <-  as.numeric(as.character(df.xgb$Male))
+  df.xgb$Driving_License <- as.numeric(as.character(df.xgb$Driving_License))
+  df.xgb$Vehicle_Damage <- as.numeric(as.character(df.xgb$Vehicle_Damage))
+  df.xgb$Previously_Insured <- as.numeric(as.character(df.xgb$Previously_Insured))
+  df.xgb$Response <- as.numeric(as.character(df.xgb$Response))
+  df.xgb$Age <- as.numeric(df.xgb$Age)
+  df.xgb$Vintage <- as.numeric(df.xgb$Vintage)
+  df.xgb <- as.matrix(df.xgb)
+  return(df.xgb)
+}
+train.xgb = xgb_preprocess(train)
+weight <- ifelse(train$Response==1, 6,1)
+bst <- xgboost(data = train.xgb[,-9], label = train.xgb[,9], nthread = -1, nrounds = 100, weight = weight)
+
+test.xgb = xgb_preprocess(test)
+test.xgb <- test.xgb[,-9]
+
+prediction <- predict(bst, test.xgb)
+prediction <- as.numeric(prediction > 0.5)
+confusionMatrix(as.factor(prediction),as.factor(test$Response))
+```
+
+Le prestazioni sono allineate a quelle dell'SVM, ma a differenza di quest'ultimo i tempi di esecuzioni sono estremamente rapidi, questa differenza sostanziale rende preferibile l'XGBoost
 
 
 

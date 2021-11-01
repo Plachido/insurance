@@ -132,7 +132,6 @@ table(SMOTE_ds$Response)
 #######Rimozione casuale:
 tree <- rpart(Response~., casual.balance.train, method = "class", control = rpart.control(cp = 0.00001))
 plot(tree)
-fancyRpartPlot(tree)
 prediction <- predict(tree, test, type = "class")
 confusionMatrix(as.factor(prediction),as.factor(test$Response))
 auc = roc(test$Response, as.numeric(prediction))
@@ -141,7 +140,6 @@ plot(auc)
 #######SMOTE:
 tree <- rpart(Response~., SMOTE_ds, method = "class", control = rpart.control(cp = 0.0001))
 plot(tree)
-fancyRpartPlot(tree)
 prediction <- predict(tree, test, type = "class")
 confusionMatrix(as.factor(prediction),as.factor(test$Response))
 auc = roc(test$Response, as.numeric(prediction))
@@ -189,24 +187,13 @@ print(auc)
 plot(auc)
 
 ############BOOSTING####################################
-#boosting(Response ~ ., data = casual.balance.train)
-#su dataset sbilanciato
-library(fastAdaboost)
-ab <- adaboost(Response ~ ., data = train[,1:11], nIter=100)
-boosting_prediction <- predict(ab, newdata = test)
-confusionMatrix(boosting_prediction$class,as.factor(test$Response))
-
-ab_casual.balance <- adaboost(Response ~ ., data = casual.balance.train[,1:11], nIter=100)
-boosting.balanced.prediction <- predict(ab_casual.balance, newdata = test)
-confusionMatrix(boosting.balanced.prediction$class,as.factor(test$Response))
-
 #BOOSTING CON XGBOOST
 library(xgboost)
 library(Matrix)
 
 xgb_preprocess <- function(df)
 {
-  df.xgb <- train[,c(1,2,3,5,6,7,8,10,11)]
+  df.xgb <- df[,c(1,2,3,5,6,7,8,10,11)]
   df.xgb$Male <-  as.numeric(as.character(df.xgb$Male))
   df.xgb$Driving_License <- as.numeric(as.character(df.xgb$Driving_License))
   df.xgb$Vehicle_Damage <- as.numeric(as.character(df.xgb$Vehicle_Damage))
