@@ -170,12 +170,9 @@ Nonostante lo sbilanciamento si prova a generare un primo modello, in particolar
 ```{r Albero di decisione}
 library(rpart) #per alberi di decisione
 tree <- rpart(Response~., train, method = "class", control = rpart.control(cp = 0.00001))
-prediction <- predict(tree, test, type = "class")
+prediction_unbalanced <- predict(tree, test, type = "class")
 library(caret) #per confusionmatrix
-confusionMatrix(as.factor(prediction),as.factor(test$Response))
-auc = roc(test$Response, as.numeric(prediction))
-print(auc)
-plot(auc)
+confusionMatrix(as.factor(prediction_unbalanced),as.factor(test$Response))
 ```
 
 Come si può notare dalla curva ROC e dalla ConfusionMatrix la classificazione non è per niente soddisfacente poichè nonostante riesca a classificare le istanze della classe di maggioranza fatica a classificare correttamente le istanze della classe di minoranza
@@ -225,28 +222,26 @@ Per prima cosa si valutano le prestazioni dell'albero di decisione applicato ai 
 
 ```{r Albero di decisione Undersampling}
 tree <- rpart(Response~., casual.balance.train, method = "class", control = rpart.control(cp = 0.00001))
-plot(tree)
-fancyRpartPlot(tree)
-prediction <- predict(tree, test, type = "class")
-confusionMatrix(as.factor(prediction),as.factor(test$Response))
-auc = roc(test$Response, as.numeric(prediction))
-print(auc)
-plot(auc)
+prediction_casual_balance <- predict(tree, test, type = "class")
+confusionMatrix(as.factor(prediction_casual_balance),as.factor(test$Response))
 ```
 
 
 ```{r Albero di decisione SMOTE}
 tree <- rpart(Response~., SMOTE_ds, method = "class", control = rpart.control(cp = 0.0001))
-plot(tree)
-fancyRpartPlot(tree)
-prediction <- predict(tree, test, type = "class")
-confusionMatrix(as.factor(prediction),as.factor(test$Response))
-auc = roc(test$Response, as.numeric(prediction))
-print(auc)
-plot(auc)
+prediction_smote <- predict(tree, test, type = "class")
+confusionMatrix(as.factor(prediction_smote),as.factor(test$Response))
 ```
 Come si può notare i risultati sono migliorati molto rispetto al primo modello con dataset sbilanciato, in particolare si nota come la tecnica di undersampling fornisca prestazioni peggiori rispetto a SMOTE per quanto riguarda la sensitivity ma migliori per quanto riguarda la specificity, quest'ultima è preferibile in questo caso come già accennato prima
- 
+
+QUI TOCCA SPIEGARE COSA è LA CURVA ROC
+```{r ROC Alberi}
+par(pty = "s")
+plot.roc(as.numeric(test$Response), as.numeric(prediction_unbalanced), col="red", percent=TRUE)
+lines.roc(as.numeric(test$Response), as.numeric(prediction_casual_balance), col="blue")
+lines.roc(test$Response, as.numeric(prediction_smote), col="green")
+legend("bottomright", legend = c("Unbalanced", "Random Undersampling", "SMOTE"), lty=1, col=c("red", "blue", "green"), cex = 2)
+```
 
 ### NAIVE BAYES
 
@@ -255,35 +250,34 @@ Adesso si utilizza il metodo di classificazione Naive-Bayes, come per gli alberi
 ```{r Naive-Bayes Sbilanciato}
 #Naive-Bayes su dataset sbilanciato
 bayes_bil <- naiveBayes(Response ~ ., data = casual.balance.train)
-b_prediction <- predict(bayes_bil, newdata = test)
-confusionMatrix(as.factor(b_prediction),as.factor(test$Response))
-auc = roc(test$Response, as.numeric(b_prediction))
-print(auc)
-plot(auc)
+b_prediction_unbalanced <- predict(bayes_bil, newdata = test)
+confusionMatrix(as.factor(b_prediction_unbalanced),as.factor(test$Response))
 ```
 
 ```{r Naive-Bayes Undersampling}
 #Naive-Bayes su dataset bilanciato con Undersampling casuale
 bayes <- naiveBayes(Response ~ ., data = train)
-b_prediction <- predict(bayes, newdata = test)
-confusionMatrix(as.factor(b_prediction),as.factor(test$Response))
-auc = roc(test$Response, as.numeric(b_prediction))
-print(auc)
-plot(auc)
+b_prediction_casual_balance <- predict(bayes, newdata = test)
+confusionMatrix(as.factor(b_prediction_casual_balance),as.factor(test$Response))
 ```
 
 ```{r Naive-Bayes SMOTE}
 #Naive-Bayes su dataset bilanciato con SMOTE
 bayes_bil <- naiveBayes(Response ~ ., data = SMOTE_ds)
-b_prediction <- predict(bayes_bil, newdata = test)
-confusionMatrix(as.factor(b_prediction),as.factor(test$Response))
-auc = roc(test$Response, as.numeric(b_prediction))
-print(auc)
-plot(auc)
+b_prediction_smote <- predict(bayes_bil, newdata = test)
+confusionMatrix(as.factor(b_prediction_smote),as.factor(test$Response))
 ```
 
 A differenza degli alberi di decisione il classificatore Naive-Bayes ha le prestazioni abbastanza allineate per tutti e 3 i dataset utilizzati. In particolare il dataset sbilanciato ha prestazioni abbastanza simili per sensitivity e specificity, mentre i dataset bilanciati hanno una specificity più alta a discapito della sensitivity, il dataset bilanciato con SMOTE però restituisce delle prestazioni simili al dataset bilanciato con Undersampling casuale ma più basse in ogni circostanza. In definitiva se si vogliono prestazioni più allineate tra di loro è preferibile usare il dataset originale, mentre prediligendo come fatto fino ad ora la specificity il dataset bilanciato con undersampling casuale risulta il migliore
 
+ANCHE QUA CITIAMO ROC
+```{r ROC Naive-Bayes}
+par(pty = "s")
+plot.roc(as.numeric(test$Response), as.numeric(b_prediction_unbalanced), col="red", percent=TRUE)
+lines.roc(as.numeric(test$Response), as.numeric(b_prediction_casual_balance), col="blue")
+lines.roc(as.numeric(test$Response), as.numeric(b_prediction_smote), col="green")
+legend("bottomright", legend = c("Unbalanced", "Random Undersampling", "SMOTE"), lty=1, col=c("red", "blue", "green"), cex = 2)
+```
 
 ### SVM 
 
