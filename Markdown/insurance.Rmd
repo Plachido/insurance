@@ -6,7 +6,7 @@ date: "29/10/2021"
 output: pdf_document
 ---
 ```{r setup, include=FALSE} 
-knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, cache=TRUE)
 ```
 
 ## INTRODUZIONE
@@ -18,35 +18,23 @@ Inizialmente le colonne che compongono il dataset sono 12, di cui una, l'ultima 
 insurance <- read.csv("../insurance.csv")
 summary(insurance)
 ```
-```{r library, echo = FALSE}
-
-library(rattle)#per plot di alberi
-library(parallel) #per parallelizzare
-library(unbalanced) #per bilanciamento
-library(pROC) #per curva ROC
-library(e1071) #per bayes
-library(gridExtra) #per layout
-library(mlbench) #per plot
-library(RColorBrewer)
-```
 
 ## PRE-PROCESSING
 Per poter essere utilizzate efficientemente, alcune colonne hanno bisogno di essere manipolate. In particolare:
 
 * La colonna `Gender`, viene trasformata nella colonna `Male`, che ammette valori binari `0` e `1` dove `1` rappresenta il sesso maschile e `0` quello femminile.
-```{r gender->male, indent = "  "}
+```{r gender_to_male, indent = "  "}
 
 insurance[which(insurance$Gender == "Male"),]$Gender = 1
 insurance[which(insurance$Gender == "Female"),]$Gender = 0
 colnames(insurance)[2] = "Male"
 insurance$Male <- as.factor(insurance$Male)
-
 ```
 * La colonna `Vehicle_Age` viene convertita da categorica ordinata a numerica. I valori utilizzati sono:
   + -1 per le auto immatricolate da meno di un anno
   + 0 per le auto immatricolate tra gli 1 e i 2 anni precedenti
   + 1 per le auto immatricolate da più di 2 anni
-```{r Vehicle_Age categorical->numeric, indent = "  "}
+```{r Vehicle_Age categorical_to_numeric, indent = "  "}
 
 insurance[which(insurance$Vehicle_Age == "< 1 Year"),]$Vehicle_Age <- -1
 insurance[which(insurance$Vehicle_Age == "1-2 Year"),]$Vehicle_Age <- 0
@@ -57,7 +45,7 @@ insurance$Vehicle_Age <- as.numeric(insurance$Vehicle_Age)
 * La colonna `Vehicle_Damage` viene convertita da categorica nominale a factor. I valori utilizzati sono:
   + 0 per le auto che non sono mai state coinvolte in incidenti
   + 1 per le auto che sono state coinvolte in incidenti
-```{r Vehicle_Damage categorical->factor}
+```{r Vehicle_Damage categorical_to_factor}
 
 insurance[which(insurance$Vehicle_Damage == "Yes"),]$Vehicle_Damage <- 1
 insurance[which(insurance$Vehicle_Damage == "No"),]$Vehicle_Damage <- 0
@@ -65,7 +53,7 @@ insurance$Vehicle_Damage <- as.factor(insurance$Vehicle_Damage)
 ```
 
 Le colonne categoriche e binarie restanti vengono convertite in factor
-```{r Colonne numeriche viste come factor}
+```{r Colonne categoriche e binarie diventano factor}
 
 insurance$Driving_License <- as.factor(insurance$Driving_License)
 insurance$Region_Code <- as.factor(insurance$Region_Code)
@@ -82,25 +70,23 @@ Attraverso la funzione ggplot si generano i grafici che mostrano la distribuzion
 ```{r Distribuzione frequenze}
 
 library(ggplot2)
-
-age_plot <- ggplot(insurance, 
-               aes(x=Age, fill=Response))+
+age_plot <- ggplot(insurance, aes(x=Age, fill=Response))+
     geom_histogram(alpha=0.4,position="identity")+
     xlab("Età")+
-    scale_y_continuous("Numero di osservazioni") + guides(fill=guide_legend(title=NULL)) + 
+    scale_y_continuous("Numero di osservazioni") +
+  guides(fill=guide_legend(title=NULL)) + 
   scale_fill_discrete(labels=c("Negativi","Positivi")) +
   theme(legend.position = c(1,1),legend.justification=c(1,1))
 
 #Frequenze Vintage
-vintage_plot <- ggplot(insurance, 
-             aes( x=Vintage, fill=Response))+
+vintage_plot <- ggplot(insurance, aes( x=Vintage, fill=Response))+
   geom_histogram(alpha=0.4,position="identity")+
   xlab("Vintage")+
   scale_y_continuous("Numero di osservazioni")
 
+options(scipen=999)
 #Frequenze annual_premium
-premium_plot <- ggplot( insurance, 
-             aes( x=Annual_Premium, fill=Response))+
+premium_plot <- ggplot( insurance, aes( x=Annual_Premium, fill=Response))+
   geom_histogram(alpha=0.4,position="identity")+
   xlab("Premio Annuale")+
   scale_y_continuous("Numero di osservazioni") +
@@ -149,7 +135,6 @@ par(mfrow=c(1,3))
 boxplot(insurance$Age, main="Age")
 boxplot(insurance$Annual_Premium, main="Annual_Premium")
 boxplot(insurance$Vintage, main="Vintage")
-par(mfrow=c(1,1))
 ```
 
 
@@ -158,7 +143,7 @@ par(mfrow=c(1,1))
 Per addestrare e validare i modelli che verranno realizzati si divide il dataset originale nei due dataset di training e testing nella classica proporzione percentuale di 70-30. Il criterio di separazione scelto è quello stratificato perchè consente di mantenere la proporzione tra le istanze della classe di maggioranza e quella di minoranza all'interno dei due dataset. E' stata fatta questa scelta perchè il dataset originale è molto sbilanciato, ed in questo modo evitiamo di creare dei dataset ancora più sbilanciati
 
 ```{r Separazione dataset training e testing}
-library(splitstackshape) #per suddivisione test/train stratificata
+library(splitstackshape)
 set.seed(1)
 train <- as.data.frame(stratified(insurance, c('Response'), 0.7))
 test <- insurance[which(!(insurance$id %in% train$id)),]
@@ -174,14 +159,16 @@ Nonostante lo sbilanciamento si prova a generare un primo modello, in particolar
 ## ALBERO DI DECISIONE SU DATASET SBILANCIATO
 
 ```{r Albero di decisione}
-library(rpart) #per alberi di decisione
+
+library(rpart)
+set.seed(1)
 tree <- rpart(Response~., train, method = "class", control = rpart.control(cp = 0.00001))
 prediction_unbalanced <- predict(tree, test, type = "class")
-library(caret) #per confusionmatrix
+library(caret)
 confusionMatrix(as.factor(prediction_unbalanced),as.factor(test$Response))
 ```
 
-Come si può notare dalla curva ROC e dalla ConfusionMatrix la classificazione non è per niente soddisfacente poichè nonostante riesca a classificare le istanze della classe di maggioranza fatica a classificare correttamente le istanze della classe di minoranza
+Come si può notare dalla ConfusionMatrix la classificazione non è per niente soddisfacente poichè nonostante riesca a classificare le istanze della classe di maggioranza fatica a classificare correttamente le istanze della classe di minoranza
 Questo è un problema perchè oltre ad essere un punto debole del modello, l'obiettivo della classificazione è quello di massimizzare la corretta identificazione di potenziali clienti interessati piuttosto che di quelli non interessati. In generale quindi si preferisce avere un maggior tasso di falsi positivi piuttosto che di falsi negativi
 
 
@@ -193,13 +180,12 @@ Alla luce delle prestazioni mostrate da questo primo modello è bene procedere a
 
 
 ```{r casual UnderSampling}
+library(unbalanced)
 set.seed(1)
 rem <- ubUnder(train[,1:11], train$Response, perc=14, method = "percUnder")
 casual.balance.train <- data.frame(rem$X, rem$Y)
 casual.balance.train$rem.Y <- NULL
 names(casual.balance.train)[11] <- "Response"
-#casual.balance.test <- c(test, train[rem$id.rm,])
-rm(rem)
 table(casual.balance.train$Response)
 ```
 
@@ -210,15 +196,14 @@ Per quanto riguarda l'applicazione della tecnica di ribilanciamento SMOTE (synth
 
 ```{r SMOTE}
 set.seed(1)
-SMOTE <- ubBalance(train[,-c(1,11)], train[,11],type="ubSMOTE", positive = 1, 
+SMOTE <- ubBalance(train[,-c(11)], train[,11],type="ubSMOTE", positive = 1, 
                    percOver = 100, percUnder = 280, verbose = T)
-SMOTE_ds <- SMOTE$X
-SMOTE_ds$Response <- SMOTE$Y
-table(SMOTE_ds$Response)
+SMOTE_train <- SMOTE$X
+SMOTE_train$Response <- SMOTE$Y
+table(SMOTE_train$Response)
 ```
 
 ## MODELLI DI CLASSIFICAZIONE
-
 
 
 ### ALBERI DI DECISIONE
@@ -226,14 +211,18 @@ table(SMOTE_ds$Response)
 Per prima cosa si valutano le prestazioni dell'albero di decisione applicato ai dataset bilanciati, prima il dataset bilanciato con la tecnica di sottocampionamento e dopo il dataset bilanciato con lo SMOTE
 
 ```{r Albero di decisione Undersampling}
-tree <- rpart(Response~., casual.balance.train, method = "class", control = rpart.control(cp = 0.00001))
+set.seed(1)
+tree <- rpart(Response~., casual.balance.train, method = "class",
+              control = rpart.control(cp = 0.00001))
 prediction_casual_balance <- predict(tree, test, type = "class")
 confusionMatrix(as.factor(prediction_casual_balance),as.factor(test$Response))
 ```
 
 
 ```{r Albero di decisione SMOTE}
-tree <- rpart(Response~., SMOTE_ds, method = "class", control = rpart.control(cp = 0.0001))
+set.seed(1)
+tree <- rpart(Response~., SMOTE_train, method = "class",
+              control = rpart.control(cp = 0.0001))
 prediction_smote <- predict(tree, test, type = "class")
 confusionMatrix(as.factor(prediction_smote),as.factor(test$Response))
 ```
@@ -241,11 +230,14 @@ Come si può notare i risultati sono migliorati molto rispetto al primo modello 
 
 QUI TOCCA SPIEGARE COSA è LA CURVA ROC
 ```{r ROC Alberi}
-par(pty = "s")
+
+library(pROC)
+par(mfrow=c(1,1), pty = "s")
 plot.roc(as.numeric(test$Response), as.numeric(prediction_unbalanced), col="red")
 lines.roc(as.numeric(test$Response), as.numeric(prediction_casual_balance), col="blue")
 lines.roc(test$Response, as.numeric(prediction_smote), col="green")
-legend("bottomright", legend = c("Unbalanced", "Random Undersampling", "SMOTE"), lty=1, col=c("red", "blue", "green"), cex = 0.5)
+legend("bottomright", legend = c("Unbalanced", "Random Undersampling", "SMOTE"), lty=1,
+       col=c("red", "blue", "green"), cex = 0.5)
 ```
 
 ### NAIVE BAYES
@@ -253,13 +245,16 @@ legend("bottomright", legend = c("Unbalanced", "Random Undersampling", "SMOTE"),
 Adesso si utilizza il metodo di classificazione Naive-Bayes, come per gli alberi di decisione si valuteranno le prestazioni prima sul dataset originale e poi per entrambi i dataset bilanciati, prima quello bilanciato con Undersampling e dopo quello bilanciato con SMOTE
 
 ```{r Naive-Bayes Sbilanciato}
+
 #Naive-Bayes su dataset sbilanciato
+library(e1071)
 bayes_bil <- naiveBayes(Response ~ ., data = casual.balance.train)
 b_prediction_unbalanced <- predict(bayes_bil, newdata = test)
 confusionMatrix(as.factor(b_prediction_unbalanced),as.factor(test$Response))
 ```
 
 ```{r Naive-Bayes Undersampling}
+
 #Naive-Bayes su dataset bilanciato con Undersampling casuale
 bayes <- naiveBayes(Response ~ ., data = train)
 b_prediction_casual_balance <- predict(bayes, newdata = test)
@@ -267,8 +262,9 @@ confusionMatrix(as.factor(b_prediction_casual_balance),as.factor(test$Response))
 ```
 
 ```{r Naive-Bayes SMOTE}
+
 #Naive-Bayes su dataset bilanciato con SMOTE
-bayes_bil <- naiveBayes(Response ~ ., data = SMOTE_ds)
+bayes_bil <- naiveBayes(Response ~ ., data = SMOTE_train)
 b_prediction_smote <- predict(bayes_bil, newdata = test)
 confusionMatrix(as.factor(b_prediction_smote),as.factor(test$Response))
 ```
@@ -277,6 +273,7 @@ A differenza degli alberi di decisione il classificatore Naive-Bayes ha le prest
 
 ANCHE QUA CITIAMO ROC
 ```{r ROC Naive-Bayes}
+par(pty = "s")
 plot.roc(as.numeric(test$Response), as.numeric(b_prediction_unbalanced), col="red")
 lines.roc(as.numeric(test$Response), as.numeric(b_prediction_casual_balance), col="blue")
 lines.roc(as.numeric(test$Response), as.numeric(b_prediction_smote), col="green")
@@ -290,12 +287,14 @@ In questo caso si applica la funzione di peso al metodo di classificazione SVM u
 In particolare i pesi (parametro `weights`) utilizzati sono 1 per la classe di maggioranza e 6 per la classe di minoranza, per ottenere un peso simile tra le classi 
 
 ```{r SVM}
-set.seed(1)
 weights <- c(1,6)
 names(weights) <- c(0, 1)
-support <- svm(formula = Response ~ ., data = train[, 1:11], kernel = "linear", class.weights = weights, scale = TRUE)
+set.seed(1)
+support <- svm(formula = Response ~ ., data = train[, 1:11], kernel = "linear",
+               class.weights = weights, scale = TRUE)
 svm_prediction <- predict(support, newdata = test)
 confusionMatrix(as.factor(svm_prediction),as.factor(test$Response))
+par(pty = "s")
 plot.roc(as.numeric(test$Response), as.numeric(svm_prediction), col="red")
 ```
 
@@ -326,6 +325,7 @@ xgb_preprocess <- function(df)
 }
 train.xgb = xgb_preprocess(train)
 weight <- ifelse(train$Response==1, 6,1)
+set.seed(1)
 bst <- xgboost(data = train.xgb[,-9], label = train.xgb[,9], 
                nthread = -1, nrounds = 100, weight = weight, verbose=0)
 
@@ -341,7 +341,4 @@ plot.roc(as.numeric(test$Response), as.numeric(xgb_prediction), col="red")
 
 Le prestazioni sono allineate a quelle dell'SVM, ma a differenza di quest'ultimo i tempi di esecuzioni sono estremamente rapidi, questa differenza sostanziale rende preferibile l'XGBoost
 
-
-
-```{r}
-```
+## CONCLUSIONI
