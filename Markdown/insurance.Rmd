@@ -14,16 +14,17 @@ Il dataset contiene informazioni sull’interesse di clienti di una compagnia di
 assicurazioni per l’acquisto di polizze auto.
 Inizialmente le colonne che compongono il dataset sono 12, di cui una, l'ultima è quella che identifica la classe di appartenenza delle istanze. Le features sono informazioni di base delle persone prese in esame, quali età, sesso, ecc, oltrechè informazioni sul veicolo e sulla situazione assicurativa. Le colonne inizialmente si trovano nella situazione mostrata dalla funzione`summary`.
 ```{r introduzione}
+
 insurance <- read.csv("../insurance.csv")
 summary(insurance)
 ```
 ```{r library, echo = FALSE}
+
 library(rattle)#per plot di alberi
 library(parallel) #per parallelizzare
 library(unbalanced) #per bilanciamento
 library(pROC) #per curva ROC
 library(e1071) #per bayes
-library(adabag) #per boosting
 library(gridExtra) #per layout
 library(mlbench) #per plot
 library(RColorBrewer)
@@ -34,6 +35,7 @@ Per poter essere utilizzate efficientemente, alcune colonne hanno bisogno di ess
 
 * La colonna `Gender`, viene trasformata nella colonna `Male`, che ammette valori binari `0` e `1` dove `1` rappresenta il sesso maschile e `0` quello femminile.
 ```{r gender->male, indent = "  "}
+
 insurance[which(insurance$Gender == "Male"),]$Gender = 1
 insurance[which(insurance$Gender == "Female"),]$Gender = 0
 colnames(insurance)[2] = "Male"
@@ -45,6 +47,7 @@ insurance$Male <- as.factor(insurance$Male)
   + 0 per le auto immatricolate tra gli 1 e i 2 anni precedenti
   + 1 per le auto immatricolate da più di 2 anni
 ```{r Vehicle_Age categorical->numeric, indent = "  "}
+
 insurance[which(insurance$Vehicle_Age == "< 1 Year"),]$Vehicle_Age <- -1
 insurance[which(insurance$Vehicle_Age == "1-2 Year"),]$Vehicle_Age <- 0
 insurance[which(insurance$Vehicle_Age == "> 2 Years"),]$Vehicle_Age <- 1
@@ -55,6 +58,7 @@ insurance$Vehicle_Age <- as.numeric(insurance$Vehicle_Age)
   + 0 per le auto che non sono mai state coinvolte in incidenti
   + 1 per le auto che sono state coinvolte in incidenti
 ```{r Vehicle_Damage categorical->factor}
+
 insurance[which(insurance$Vehicle_Damage == "Yes"),]$Vehicle_Damage <- 1
 insurance[which(insurance$Vehicle_Damage == "No"),]$Vehicle_Damage <- 0
 insurance$Vehicle_Damage <- as.factor(insurance$Vehicle_Damage)
@@ -62,6 +66,7 @@ insurance$Vehicle_Damage <- as.factor(insurance$Vehicle_Damage)
 
 Le colonne categoriche e binarie restanti vengono convertite in factor
 ```{r Colonne numeriche viste come factor}
+
 insurance$Driving_License <- as.factor(insurance$Driving_License)
 insurance$Region_Code <- as.factor(insurance$Region_Code)
 insurance$Previously_Insured <- as.factor(insurance$Previously_Insured)
@@ -75,6 +80,7 @@ insurance$Response <- as.factor(insurance$Response)
 Attraverso la funzione ggplot si generano i grafici che mostrano la distribuzione di frequenza delle variabili numeriche `Age`, `Vintage`, `Annual_Premium`
 
 ```{r Distribuzione frequenze}
+
 library(ggplot2)
 
 age_plot <- ggplot(insurance, 
@@ -208,7 +214,6 @@ SMOTE <- ubBalance(train[,-c(1,11)], train[,11],type="ubSMOTE", positive = 1,
                    percOver = 100, percUnder = 280, verbose = T)
 SMOTE_ds <- SMOTE$X
 SMOTE_ds$Response <- SMOTE$Y
-#smote.balance.test <- c(test, SMOTE$id.rm)
 table(SMOTE_ds$Response)
 ```
 
@@ -240,7 +245,7 @@ par(pty = "s")
 plot.roc(as.numeric(test$Response), as.numeric(prediction_unbalanced), col="red")
 lines.roc(as.numeric(test$Response), as.numeric(prediction_casual_balance), col="blue")
 lines.roc(test$Response, as.numeric(prediction_smote), col="green")
-legend("bottomright", legend = c("Unbalanced", "Random Undersampling", "SMOTE"), lty=1, col=c("red", "blue", "green"), cex = 2)
+legend("bottomright", legend = c("Unbalanced", "Random Undersampling", "SMOTE"), lty=1, col=c("red", "blue", "green"), cex = 0.5)
 ```
 
 ### NAIVE BAYES
@@ -275,7 +280,7 @@ ANCHE QUA CITIAMO ROC
 plot.roc(as.numeric(test$Response), as.numeric(b_prediction_unbalanced), col="red")
 lines.roc(as.numeric(test$Response), as.numeric(b_prediction_casual_balance), col="blue")
 lines.roc(as.numeric(test$Response), as.numeric(b_prediction_smote), col="green")
-legend("bottomright", legend = c("Unbalanced", "Random Undersampling", "SMOTE"), lty=1, col=c("red", "blue", "green"), cex = 2)
+legend("bottomright", legend = c("Unbalanced", "Random Undersampling", "SMOTE"), lty=1, col=c("red", "blue", "green"), cex = 0.5)
 ```
 
 ### SVM 
@@ -302,6 +307,7 @@ Le prestazioni del classificatore sono buone in generale e soprattutto hanno ott
 L'algoritmo XGBoost si basa sul metodo del gradient boosting che utilizza le derivate di secondo ordine, cioè il gradiente, per trovare il miglior modello ad albero grazie ad una esaustiva valutazione di tutte le possibili suddivisioni ad ogni passo dell'algoritmo. Viste le prestazioni del metodo SVM abbinata alla funzione dei pesi anche l'algoritmo XGBoost si applica allo stesso modo
 
 ```{r XGBoost}
+
 library(xgboost)
 library(Matrix)
 
@@ -320,7 +326,8 @@ xgb_preprocess <- function(df)
 }
 train.xgb = xgb_preprocess(train)
 weight <- ifelse(train$Response==1, 6,1)
-bst <- xgboost(data = train.xgb[,-9], label = train.xgb[,9], nthread = -1, nrounds = 100, weight = weight)
+bst <- xgboost(data = train.xgb[,-9], label = train.xgb[,9], 
+               nthread = -1, nrounds = 100, weight = weight, verbose=0)
 
 test.xgb = xgb_preprocess(test)
 test.xgb <- test.xgb[,-9]
@@ -328,6 +335,7 @@ test.xgb <- test.xgb[,-9]
 xgb_prediction <- predict(bst, test.xgb)
 xgb_prediction <- as.numeric(xgb_prediction > 0.5)
 confusionMatrix(as.factor(xgb_prediction),as.factor(test$Response))
+par(pty = "s")
 plot.roc(as.numeric(test$Response), as.numeric(xgb_prediction), col="red")
 ```
 
