@@ -237,7 +237,7 @@ Come si può notare i risultati sono migliorati molto rispetto al primo modello 
 QUI TOCCA SPIEGARE COSA è LA CURVA ROC
 ```{r ROC Alberi}
 par(pty = "s")
-plot.roc(as.numeric(test$Response), as.numeric(prediction_unbalanced), col="red", percent=TRUE)
+plot.roc(as.numeric(test$Response), as.numeric(prediction_unbalanced), col="red")
 lines.roc(as.numeric(test$Response), as.numeric(prediction_casual_balance), col="blue")
 lines.roc(test$Response, as.numeric(prediction_smote), col="green")
 legend("bottomright", legend = c("Unbalanced", "Random Undersampling", "SMOTE"), lty=1, col=c("red", "blue", "green"), cex = 2)
@@ -272,8 +272,7 @@ A differenza degli alberi di decisione il classificatore Naive-Bayes ha le prest
 
 ANCHE QUA CITIAMO ROC
 ```{r ROC Naive-Bayes}
-par(pty = "s")
-plot.roc(as.numeric(test$Response), as.numeric(b_prediction_unbalanced), col="red", percent=TRUE)
+plot.roc(as.numeric(test$Response), as.numeric(b_prediction_unbalanced), col="red")
 lines.roc(as.numeric(test$Response), as.numeric(b_prediction_casual_balance), col="blue")
 lines.roc(as.numeric(test$Response), as.numeric(b_prediction_smote), col="green")
 legend("bottomright", legend = c("Unbalanced", "Random Undersampling", "SMOTE"), lty=1, col=c("red", "blue", "green"), cex = 2)
@@ -290,13 +289,9 @@ set.seed(1)
 weights <- c(1,6)
 names(weights) <- c(0, 1)
 support <- svm(formula = Response ~ ., data = train[, 1:11], kernel = "linear", class.weights = weights, scale = TRUE)
-print(support)
-plot(support, casual.balance.train)
 svm_prediction <- predict(support, newdata = test)
 confusionMatrix(as.factor(svm_prediction),as.factor(test$Response))
-auc = roc(test$Response, as.numeric(svm_prediction))
-print(auc)
-plot(auc)
+plot.roc(as.numeric(test$Response), as.numeric(svm_prediction), col="red")
 ```
 
 Le prestazioni del classificatore sono buone in generale e soprattutto hanno ottima specificity, purtroppo però il metodo risulta molto costoso dal punto di vista del tempo, motivo per il quale mi sono limitato ad applicarlo ad uno solo dei dataset a disposizione
@@ -330,9 +325,10 @@ bst <- xgboost(data = train.xgb[,-9], label = train.xgb[,9], nthread = -1, nroun
 test.xgb = xgb_preprocess(test)
 test.xgb <- test.xgb[,-9]
 
-prediction <- predict(bst, test.xgb)
-prediction <- as.numeric(prediction > 0.5)
-confusionMatrix(as.factor(prediction),as.factor(test$Response))
+xgb_prediction <- predict(bst, test.xgb)
+xgb_prediction <- as.numeric(xgb_prediction > 0.5)
+confusionMatrix(as.factor(xgb_prediction),as.factor(test$Response))
+plot.roc(as.numeric(test$Response), as.numeric(xgb_prediction), col="red")
 ```
 
 Le prestazioni sono allineate a quelle dell'SVM, ma a differenza di quest'ultimo i tempi di esecuzioni sono estremamente rapidi, questa differenza sostanziale rende preferibile l'XGBoost
