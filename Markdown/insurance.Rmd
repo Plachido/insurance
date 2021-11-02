@@ -128,7 +128,8 @@ ggplot(freq, aes(x = "", y = perc, fill = Response)) +
 
 
 Per rappresentare graficamente la distribuzione dei valori delle 3 features numeriche 
-`Age`, `Annual_Premium`, `Vintage`e controllare la presenza di outliers si stampano i relativi boxplot
+`Age`, `Annual_Premium`, `Vintage`e controllare la presenza di outliers si stampano i relativi boxplot. Mentre per il primo ed il terzo non si notano anomalie, per il boxplot relativo ad `Annual_Premium` si nota che la maggioranza delle persone paga cifre molto simili tra loro e abbastanza basse, mentre un numero non trascurabile di persone paga una cifra molto più elevata per la propria assicurazione. Essendo queste istanze di numero elevato, non possiamo assumere che siano effettivamente valori anomali ed inoltre eliminarli potrebbe portare i modelli a classificare male potenziali clienti che hanno un valore alto in tale feature. Ancora, questi potenziali clienti potrebbero essere di particolare interesse proprio in virtù del loro premio particolarmente alto
+
 ```{r Boxplot}
 
 par(mfrow=c(1,3))
@@ -229,7 +230,7 @@ confusionMatrix(as.factor(prediction_smote),as.factor(test$Response))
 ```
 Come si può notare i risultati sono migliorati molto rispetto al primo modello con dataset sbilanciato, in particolare si nota come la tecnica di undersampling fornisca prestazioni peggiori rispetto a SMOTE per quanto riguarda la sensitivity ma migliori per quanto riguarda la specificity, quest'ultima è preferibile in questo caso come già accennato prima
 
-QUI TOCCA SPIEGARE COSA è LA CURVA ROC
+Per valutare le prestazioni di un classificatore binario o per confrontarne più di uno graficamente ci si affida alla curva ROC, che mettendo in relazione il tasso di veri positivi e il tasso di falsi positivi permette un'immediata valutazione dei modelli, in generale un modello risulta essere più accurato quanto più la sua curva ROC si avvicina all'angolo superiore sinistro del grafico
 ```{r ROC Alberi}
 
 library(pROC)
@@ -243,7 +244,8 @@ legend("bottomright", legend = c("Unbalanced", "Random Undersampling", "SMOTE"),
 
 ### NAIVE BAYES
 
-Adesso si utilizza il metodo di classificazione Naive-Bayes, come per gli alberi di decisione si valuteranno le prestazioni prima sul dataset originale e poi per entrambi i dataset bilanciati, prima quello bilanciato con Undersampling e dopo quello bilanciato con SMOTE
+Adesso si utilizza il metodo di classificazione Naive-Bayes anche grazie al fatto che non ci sono dati mancanti. Questo metodo risulta molto rapido nell'esecuzione perchè nonostante si basi sul teorema di Bayes, il metodo Naive-Bayes fa delle semplificazioni assumendo che l'effetto di un attributo su una data classe sia indipendente dai valori degli altri attributi.
+Come per gli alberi di decisione si valuteranno le prestazioni prima sul dataset originale e poi per entrambi i dataset bilanciati, prima quello bilanciato con Undersampling e dopo quello bilanciato con SMOTE
 
 ```{r Naive-Bayes Sbilanciato}
 
@@ -272,7 +274,8 @@ confusionMatrix(as.factor(b_prediction_smote),as.factor(test$Response))
 
 A differenza degli alberi di decisione il classificatore Naive-Bayes ha le prestazioni abbastanza allineate per tutti e 3 i dataset utilizzati. In particolare il dataset sbilanciato ha prestazioni abbastanza simili per sensitivity e specificity, mentre i dataset bilanciati hanno una specificity più alta a discapito della sensitivity, il dataset bilanciato con SMOTE però restituisce delle prestazioni simili al dataset bilanciato con Undersampling casuale ma più basse in ogni circostanza. In definitiva se si vogliono prestazioni più allineate tra di loro è preferibile usare il dataset originale, mentre prediligendo come fatto fino ad ora la specificity il dataset bilanciato con undersampling casuale risulta il migliore
 
-ANCHE QUA CITIAMO ROC
+Anche in questo caso si può fare una veloce valutazione delle prestazioni dei modelli 
+mediante l'uso della curva ROC 
 ```{r ROC Naive-Bayes}
 par(pty = "s")
 plot.roc(as.numeric(test$Response), as.numeric(b_prediction_unbalanced), col="red")
@@ -343,3 +346,8 @@ plot.roc(as.numeric(test$Response), as.numeric(xgb_prediction), col="red")
 Le prestazioni sono allineate a quelle dell'SVM, ma a differenza di quest'ultimo i tempi di esecuzioni sono estremamente rapidi, questa differenza sostanziale rende preferibile l'XGBoost
 
 ## CONCLUSIONI
+
+Come già detto in precedenza la priorità nelle prestazioni è stata data alla specificity, senza ovviamente trascurare troppo la sensitivity, e con un occhio di riguardo alla velocità di esecuzione di ogni modello. 
+Si nota che l'unico modello a funzionare egregiamente con il dataset di training fortemente sbilanciato è il Naive-Bayes; per gli alberi di decisione invece le manipolazioni effettuate sono risultate molto efficaci nel migliorare le prestazioni. Mentre l'SVM come prestazioni è risultato ottimo ma abbinato a tempi di esecuzione estremamente lunghi rispetto agli altri algoritmi impiegati (dell'ordine delle ore), il Boosting è risultato altrettanto ottimo quanto l'SVM impiegando però brevissimo tempo per l'esecuzione. 
+Concludendo, se l'obiettivo come in questo caso è quello di trovare più clienti interessati possibili è bene massimizzare la specificity, usando un metodo che non richieda troppo tempo per l'esecuzione, allora il migliore risulta essere il modello addestrato con XGBoost. 
+Se invece si ritenesse l'XGBoost troppo specificity-oriented, si può optare per l'albero generato tramite l'algoritmo CART addestrato sul dataset ribilanciato con la tecnica del sottocampionamento casuale
