@@ -221,12 +221,9 @@ confusionMatrix(as.factor(prediction_casual_balance),as.factor(test$Response))
 
 ```{r Albero di decisione SMOTE}
 set.seed(1)
-<<<<<<< HEAD
 tree <- rpart(Response~., SMOTE_train, method = "class",
               control = rpart.control(cp = 0.0001))
-=======
 tree <- rpart(Response~., SMOTE_train, method = "class", control = rpart.control(cp = 0.0001))
->>>>>>> 1f9eeb5dc198ea414bd926f64f44e332ea1de70f
 prediction_smote <- predict(tree, test, type = "class")
 confusionMatrix(as.factor(prediction_smote),as.factor(test$Response))
 ```
