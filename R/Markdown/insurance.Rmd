@@ -12,7 +12,22 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE, cache=TRUE)
 ## INTRODUZIONE
 Il dataset contiene informazioni sull’interesse di clienti di una compagnia di
 assicurazioni per l’acquisto di polizze auto.
-Inizialmente le colonne che compongono il dataset sono 12, di cui una, l'ultima, è quella che identifica la classe di appartenenza delle istanze. Le features sono informazioni di base delle persone prese in esame, quali età, sesso, ecc, oltrechè informazioni sul veicolo e sulla situazione assicurativa. Le colonne inizialmente si trovano nella situazione mostrata dalla funzione`summary`.
+Inizialmente le colonne che compongono il dataset sono 11 più l'ultima che è quella che identifica la classe di appartenenza delle istanze, ovvero la ground truth. Le features sono informazioni di base delle persone prese in esame, in particolare:
+
+* ID: indice identificativo dei record del dataset
+* Gender: Sesso del cliente (Male/Female)
+* Age: Età del cliente espressa in anni
+* DrivingLicense: Possesso della patente di guida (1 in caso positivo o 0 in caso negativo)
+* RegionCode: Codice della regione di residenza del cliente
+* PreviouslyInsured: Indica se il cliente è già assicurato oppure no (1 in caso positivo o 0 in caso negativo)
+* VehicleAge: Età del veicolo espressa in 3 categorie (<1 anno, 1-2 anni, >2 anni)
+* VehicleDamage: Indica se il cliente ha fatto incidenti in passato oppure no (1 se positivo o 0 se negativo)
+* AnnualPremium: Premio che il cliente paga attualmente
+* PolicySalesChannel: Codice che indica il canale di comunicazione con il quale si interfaccia l'utente (Agente, Mail, Telefono, Fax)
+* Vintage: Da quanto tempo il cliente è assicurato con la compagnia espresso in giorni
+* Response: La ground truth che indica l'interesse del cliente, 1 se è interessato, 0 se non è interessato
+
+Le colonne inizialmente si trovano nella situazione mostrata dalla funzione`summary`.
 ```{r introduzione}
 
 insurance <- read.csv("../../insurance.csv")
@@ -30,6 +45,7 @@ insurance[which(insurance$Gender == "Female"),]$Gender = 0
 colnames(insurance)[2] = "Male"
 insurance$Male <- as.factor(insurance$Male)
 ```
+
 * La colonna `Vehicle_Age` viene convertita da categorica ordinata a numerica. I valori utilizzati sono:
   + -1 per le auto immatricolate da meno di un anno
   + 0 per le auto immatricolate tra gli 1 e i 2 anni precedenti
