@@ -21,6 +21,14 @@ for column in df.columns:
     print("")
 
 df.describe(include='O')
+df.shape
+
+#GRAFICO A TORTA CHE DIMOSTRA LO SBILANCIAMENTO
+print(df['Response'].value_counts())
+freq = df['Response'].value_counts(normalize=True) * 100
+plt.pie(freq, autopct='%.0f%%')
+plt.legend(['0', '1'])
+plt.show()
 
 #BOXPLOT DI AGE, ANNUAL_PREMIUM E VINTAGE
 plt.subplot(1, 3, 1)
@@ -41,17 +49,49 @@ cleanup_nums = {"Vehicle_Age": {"< 1 Year": -1, "1-2 Year": 0, "> 2 Years": 1},
                                                   #REGOLE DI CONVERSIONE
 df = df.replace(cleanup_nums)
 
+#PLOT DISTRIBUZIONE FREQUENZE SU VARIABILI NUMERICHE CONTINUE
+import numpy as np
+#DISTRIBUZIONE SU "AGE"
+x1 = df.loc[df.Response == 1, 'Age']
+x2 = df.loc[df.Response == 0, 'Age']
+plt.hist(x2, color='#F8766D', label='0', alpha=0.4, bins=30,
+         weights=np.zeros_like(x2) + 1. / x2.size)
+plt.hist(x1, color='#00BA38', label='1', alpha=0.4, bins=30,
+         weights=np.zeros_like(x1) + 1. / x1.size)
+plt.gca().set(title='Frequency histogram of "Age"', ylabel='Frequency')
+plt.xlim(0, 90)
+plt.legend()
+plt.show()
+#DISTRIBUZIONE SU "VINTAGE"
+x1 = df.loc[df.Response == 1, 'Vintage']
+x2 = df.loc[df.Response == 0, 'Vintage']
+plt.hist(x2, color='#F8766D', label='0', alpha=0.4, bins=30,
+         weights=np.zeros_like(x2) + 1. / x2.size)
+plt.hist(x1, color='#00BA38', label='1', alpha=0.4, bins=30,
+         weights=np.zeros_like(x1) + 1. / x1.size)
+plt.gca().set(title='Frequency histogram of "Vintage"', ylabel='Frequency')
+plt.xlim(0, 310)
+plt.legend();
+plt.show()
+#DISTRIBUZIONE SU "ANNUAL_PREMIUM"
+kwargs = dict(alpha=0.4, bins=100)
+x1 = df.loc[df.Response == 1, 'Annual_Premium']
+x2 = df.loc[df.Response == 0, 'Annual_Premium']
+plt.hist(x2, color='#F8766D', label='0', alpha=0.4, bins=100,
+         weights=np.zeros_like(x2) + 1. / x2.size)
+plt.hist(x1, color='#00BA38', label='1', alpha=0.4, bins=100,
+         weights=np.zeros_like(x1) + 1. / x1.size)
+plt.gca().set(title='Frequency histogram of "Annual Premium"', ylabel='Frequency')
+plt.xlim(0, 120000)
+plt.legend()
+plt.show()
+
+
 #MATRICE DI CORRELAZIONE
 import numpy as np #PER TRIANGOLIZZAZIONE MATRICE DI CORRELAZIONE
 corMatrix = df[['Age', 'Vehicle_Age', 'Annual_Premium', 'Vintage']].corr()
 Matrix = np.triu(corMatrix)
 sns.heatmap(corMatrix, annot=True, square=True, mask = Matrix)
-plt.show()
-
-#GRAFICO A TORTA CHE DIMOSTRA LO SBILANCIAMENTO
-freq = df['Response'].value_counts(normalize=True) * 100
-plt.pie(freq, autopct='%.0f%%')
-plt.legend(['0', '1'])
 plt.show()
 
 #SPLIT STRATIFICATO TEST/TRAIN

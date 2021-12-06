@@ -12,6 +12,20 @@ library(Matrix) #manipolazione matrice
 
 insurance <- read.csv("D:/LUMSA/Artificial intelligence/PROGETTO/insurance.csv")
 summary(insurance)
+length(insurance[,1])
+
+#DIMOSTRAZIONE DELLO SBILANCIAMENTO
+freq <- as.data.frame(table(insurance$Response))
+colnames(freq)[1] = "Response"
+freq$perc <- prop.table(freq$Freq)
+print(freq)
+ggplot(freq, aes(x = "", y = perc, fill = Response)) +
+  geom_col(color = "black") +
+  coord_polar(theta = "y") +
+  xlab("") +
+  ylab("") +
+  ggtitle("Frequenza delle classi") +
+  theme(plot.title = element_text(hjust = 0.5))
 
 #PRE-PROCESSING
 #gender
@@ -62,19 +76,6 @@ ggarrange(age_plot, ggarrange(vintage_plot, premium_plot, ncol = 2, legend = "no
 #MATRICE DI CORRELAZIONE
 correlationMatrix <- stats::cor(insurance[c(3, 7, 9, 11)])
 corrplot(correlationMatrix, method="circle", type="lower", tl.col="black")
-
-#DIMOSTRAZIONE DELLO SBILANCIAMENTO
-freq <- as.data.frame(table(insurance$Response))
-colnames(freq)[1] = "Response"
-freq$perc <- prop.table(freq$Freq)
-print(freq)
-ggplot(freq, aes(x = "", y = perc, fill = Response)) +
-  geom_col(color = "black") +
-  coord_polar(theta = "y") +
-  xlab("") + 
-  ylab("") +
-  ggtitle("Frequenza delle classi") +
-  theme(plot.title = element_text(hjust = 0.5))
 
 #BOXPLOT
 par(mfrow=c(1,3))

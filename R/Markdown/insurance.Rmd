@@ -12,7 +12,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE, cache=TRUE)
 ## INTRODUZIONE
 Il dataset contiene informazioni sull’interesse di clienti di una compagnia di
 assicurazioni per l’acquisto di polizze auto.
-Inizialmente le colonne che compongono il dataset sono 11 più l'ultima che è quella che identifica la classe di appartenenza delle istanze, ovvero la ground truth. Le features sono informazioni di base delle persone prese in esame, in particolare:
+Inizialmente le colonne che compongono il dataset sono 11 più l'ultima che è quella che identifica la classe di appartenenza delle istanze, ovvero la ground truth. Le features sono informazioni sulle persone prese in esame, in particolare:
 
 * ID: indice identificativo dei record del dataset
 * Gender: Sesso del cliente (Male/Female)
@@ -33,6 +33,29 @@ Le colonne inizialmente si trovano nella situazione mostrata dalla funzione`summ
 insurance <- read.csv("../../insurance.csv")
 summary(insurance)
 ```
+
+Il dataset è composto quindi da 12 colonne e 381109 righe
+```{r lunghezza dataset}
+length(insurance[,1])
+```
+
+Uno degli aspetti più critici del dataset in analisi è lo sbilanciamento tra le classi,
+come si evince dal seguente piechart. Infatti le percentuali evidenziano uno sbilanciamento di 88% (334399) a favore della classe dei negativi contro il 12% (46710) della classe dei positivi
+```{r Dimostrazione sbilanciamento}
+
+freq <- as.data.frame(table(insurance$Response))
+colnames(freq)[1] = "Response"
+freq$perc <- prop.table(freq$Freq)
+print(freq)
+ggplot(freq, aes(x = "", y = perc, fill = Response)) +
+  geom_col(color = "black") +
+  coord_polar(theta = "y") +
+  xlab("") +
+  ylab("") +
+  ggtitle("Frequenza delle classi") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
 
 ## PRE-PROCESSING
 Per poter essere utilizzate efficientemente, alcune colonne hanno bisogno di essere manipolate. In particolare:
@@ -122,24 +145,6 @@ ho deciso di mantenerle entrambe poichè il vantaggio dal punto di vista computa
 library(corrplot)
 correlationMatrix <- stats::cor(insurance[c(3, 7, 9, 11)])
 corrplot(correlationMatrix, method="circle", type="lower", tl.col="black")
-```
-
-
-Uno degli aspetti più critici del dataset in analisi è lo sbilanciamento tra le classi,
-come si evince dal seguente piechart. Infatti le percentuali evidenziano uno sbilanciamento di 88% a favore della classe dei negativi contro il 12% della classe dei positivi
-```{r Dimostrazione sbilanciamento}
-
-freq <- as.data.frame(table(insurance$Response))
-colnames(freq)[1] = "Response"
-freq$perc <- prop.table(freq$Freq)
-print(freq)
-ggplot(freq, aes(x = "", y = perc, fill = Response)) +
-  geom_col(color = "black") +
-  coord_polar(theta = "y") +
-  xlab("") +
-  ylab("") +
-  ggtitle("Frequenza delle classi") +
-  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 
