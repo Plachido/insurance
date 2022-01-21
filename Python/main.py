@@ -1,18 +1,20 @@
-# IMPORTAZIONE DELLE LIBRERIE
-import pandas as pd  # PER STRUTTURE DATI E MANIPOLAZIONE (DF/SERIES)
-import seaborn as sns  # PER PLOT
-import matplotlib.pyplot as plt  # PER PLOT
+#IMPORTAZIONE DELLE LIBRERIE
+import pandas as pd #PER STRUTTURE DATI E MANIPOLAZIONE (DF/SERIES)
+import seaborn as sns #PER PLOT
+import matplotlib.pyplot as plt #PER PLOT
 
-# CREAZIONE DEL DATASET E VISUALIZZAZIONE DI DIMENSIONI
-# VISUALIZZAZIONI TIPI DI DATO DELLE COLONNE
+
+#CREAZIONE DEL DATASET E VISUALIZZAZIONE DI DIMENSIONI
+#VISUALIZZAZIONI TIPI DI DATO DELLE COLONNE
 df = pd.read_csv('../insurance.csv')
 df.head()
 # Alcune feature necessitano di essere manipolate prima di essere utilizzate
 # Ad esempio la colonna id viene tolta in quanto irrilevante ai fini dell'analisi
+
 df.describe()
 
-# Mostro i valori unici presenti in ogni colonna
-df = df.drop(columns='id')
+#Mostro i valori unici presenti in ogni colonna
+df = df.drop(columns = 'id')
 
 for column in df.columns:
     print(f"{column}: ")
@@ -20,7 +22,7 @@ for column in df.columns:
     print(df[column].unique())
     print("")
 
-df.describe(include='O')
+df.describe(include = 'O')
 df.shape
 
 #GRAFICO A TORTA CHE DIMOSTRA LO SBILANCIAMENTO
@@ -49,8 +51,8 @@ cleanup_nums = {"Vehicle_Age": {"< 1 Year": -1, "1-2 Year": 0, "> 2 Years": 1},
                                                   #REGOLE DI CONVERSIONE
 df = df.replace(cleanup_nums)
 
-#PLOT DISTRIBUZIONE FREQUENZE SU VARIABILI NUMERICHE CONTINUE
 import numpy as np
+# DISTRIBUZIONE DELLE FREQUENZE SU VARIABILI VARIE
 #DISTRIBUZIONE SU "AGE"
 x1 = df.loc[df.Response == 1, 'Age']
 x2 = df.loc[df.Response == 0, 'Age']
@@ -86,9 +88,7 @@ plt.xlim(0, 120000)
 plt.legend()
 plt.show()
 
-
 #MATRICE DI CORRELAZIONE
-import numpy as np #PER TRIANGOLIZZAZIONE MATRICE DI CORRELAZIONE
 corMatrix = df[['Age', 'Vehicle_Age', 'Annual_Premium', 'Vintage']].corr()
 Matrix = np.triu(corMatrix)
 sns.heatmap(corMatrix, annot=True, square=True, mask = Matrix)
@@ -96,7 +96,6 @@ plt.show()
 
 #SPLIT STRATIFICATO TEST/TRAIN
 from sklearn import model_selection
-
 y = df['Response']
 x = df.drop(['Response'], axis=1)
 X_train, X_test, y_train, y_test = model_selection.train_test_split(x, y,
@@ -123,7 +122,6 @@ def confusionMatrix (Prediction, Ground_Truth, verbose = False):
     return accuracy, sensitivity, specificity
 
 from sklearn.tree import DecisionTreeClassifier
-
 #FUNZIONE PER LA CREAZIONE E IL TESTING DI ALBERI
 def tree_test(X_train, y_train, X_test, y_test, verbose = True):
     dtree = DecisionTreeClassifier(random_state=1)
@@ -221,6 +219,60 @@ X_train_mix, y_train_mix = oversample.fit_resample(X_train, y_train)
 X_train_mix, y_train_mix = under.fit_resample(X_train_mix, y_train_mix)
 print(y_train_mix.value_counts())
 
+df_original = pd.concat([X_train, y_train], axis = 1)
+df_under = pd.concat([X_train_under, y_train_under], axis = 1)
+df_over = pd.concat([X_train_over, y_train_over], axis = 1)
+df_mix = pd.concat([X_train_mix, y_train_mix], axis = 1)
+i = 0
+for df in (df_original, df_over, df_under, df_mix):
+    i +=1
+    plt.subplot(4,3,i)
+    x1 = df.loc[df.Response == 1, 'Age']
+    x2 = df.loc[df.Response == 0, 'Age']
+    plt.hist(x2, color='#F8766D', label='0', alpha=0.4, bins=30,
+             weights=np.zeros_like(x2) + 1. / x2.size)
+    plt.hist(x1, color='#00BA38', label='1', alpha=0.4, bins=30,
+             weights=np.zeros_like(x1) + 1. / x1.size)
+    frame1 = plt.gca()
+    frame1.axes.get_xaxis().set_visible(False)
+    frame1.axes.get_yaxis().set_visible(False)
+    plt.xlim(0, 90)
+
+    #DISTRIBUZIONE SU "VINTAGE"
+    i+=1
+    plt.subplot(4,3,i)
+    x1 = df.loc[df.Response == 1, 'Vintage']
+    x2 = df.loc[df.Response == 0, 'Vintage']
+    plt.hist(x2, color='#F8766D', label='0', alpha=0.4, bins=30,
+             weights=np.zeros_like(x2) + 1. / x2.size)
+    plt.hist(x1, color='#00BA38', label='1', alpha=0.4, bins=30,
+             weights=np.zeros_like(x1) + 1. / x1.size)
+    frame2 = plt.gca()
+    frame2.axes.get_xaxis().set_visible(False)
+    frame2.axes.get_yaxis().set_visible(False)
+    plt.xlim(0, 310)
+
+    #DISTRIBUZIONE SU "ANNUAL_PREMIUM"
+    i+=1
+    plt.subplot(4,3,i)
+    kwargs = dict(alpha=0.4, bins=100)
+    x1 = df.loc[df.Response == 1, 'Annual_Premium']
+    x2 = df.loc[df.Response == 0, 'Annual_Premium']
+    plt.hist(x2, color='#F8766D', label='0', alpha=0.4, bins=100,
+             weights=np.zeros_like(x2) + 1. / x2.size)
+    plt.hist(x1, color='#00BA38', label='1', alpha=0.4, bins=100,
+             weights=np.zeros_like(x1) + 1. / x1.size)
+    frame3 = plt.gca()
+    frame3.axes.get_xaxis().set_visible(False)
+    frame3.axes.get_yaxis().set_visible(False)
+    plt.xlim(0, 120000)
+plt.show()
+
+
+## MODELLI DI CLASSIFICAZIONE
+
+### ALBERI DI DECISIONE
+
 #ALBERO CON UNDERSAMPLING CASUALE
 X_train_under_num = X_train_under.drop(['Region_Code','Policy_Sales_Channel'], axis=1)
 dtree_us = tree_test(X_train_under_num, y_train_under, X_test_num, y_test)
@@ -277,22 +329,25 @@ gnb_mix = gnb.fit(X_train_mix, y_train_mix)
 pred = gnb.predict(X_test)
 confusionMatrix(pred, y_test, True)
 
+
 #STAMPA DELLE CURVE ROC
 plot_roc(gnb, gnb_us, gnb_os, gnb_mix, X_test = X_test, y_test = y_test, labels=lab)
 
+
 #SVM CON DATASET SBILANCIATO
 from sklearn import svm
-
 clf = svm.SVC(kernel='linear')
 clf.fit(X_train, y_train)
 pred = clf.predict(X_test)
 confusionMatrix(pred, y_test, True)
+
 
 #SVM CON UNDERSAMPLING CASUALE
 clf = svm.SVC(kernel='linear')
 clf.fit(X_train_under, y_train_under)
 pred = clf.predict(X_test)
 confusionMatrix(pred, y_test, True)
+
 
 #SVM CON SMOTE
 clf = svm.SVC(kernel='linear')
@@ -314,15 +369,12 @@ confusionMatrix(pred, y_test, True)
 
 #XGBOOST su UNDERSAMPLED
 from xgboost import XGBClassifier
-
 XGB = XGBClassifier(tree_method= "gpu_hist", single_precision_histogram = True, eval_metric = 'logloss')
 XGB = XGB.fit(X_train_under, y_train_under)
 pred = XGB.predict(X_test)
 confusionMatrix(pred, y_test, verbose=True)
 
-#XGBOOST SU DATASET SBILANCIATO UTILIZZANDO LA FUNZIONE DI PESO
 XGB = XGBClassifier(tree_method= "gpu_hist", single_precision_histogram = True, scale_pos_weight=7, eval_metric = 'logloss')
 XGB = XGB.fit(X_train, y_train)
 pred = XGB.predict(X_test)
 confusionMatrix(pred, y_test, verbose=True)
-
